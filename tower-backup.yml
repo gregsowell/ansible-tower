@@ -1,6 +1,6 @@
 ---
 - name: backup a tower server
-  hosts: localhost
+  hosts: backup_server
   gather_facts: false
   become: true
   vars:
