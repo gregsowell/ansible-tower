@@ -1,0 +1,35 @@
+---
+- name: backup a tower server
+  hosts: localhost
+  gather_facts: false
+  become: true
+  vars:
+    # path where setup shell script lives
+    setup_path: /root/ansible-tower-setup-3.7.2-1/
+    # password used to encrypt backup file - don't keep it plain text like below(inject it via tower)
+    encrypt_pword: redhat
+    # folder to save backup file to in remote server
+    remote_backup_folder: /backup/tower/
+
+  tasks:
+  - name: issue setup -b to create backup file and link in setup_path
+    shell: "{{ setup_path }}setup.sh -b"
+    register: setup_info
+    delegate_to: localhost
+
+#  - name: debug setup_info
+#    debug:
+#      var: setup_info
+
+  - name: encrypt backup file in setup_path - creates new file
+    shell: "openssl enc -aes-256-cbc -salt -in {{ setup_path }}tower-backup-latest.tar.gz -out {{ setup_path }}tower-backup-latest.tar.gz.enc -k {{ encrypt_pword }}"
+    delegate_to: localhost
+
+  - name: export encrypted backup to backup server
+    copy:
+      src: {{ setup_path }}tower-backup-latest.tar.gz.enc
+      dest: "{{ remote_backup_path }}tower-backup-latest.tar.gz.enc"
+
+  - name: delete backup files from tower - standard, link, and encrypted file
+    shell: "rm -f {{ setup_path }}tower-backup*"
+    delegate_to: localhost
